@@ -99,6 +99,8 @@ async function _export({
 	});
 
 	const seen = new Set();
+	const sitemap = new Set();
+	const sitemap_base = "https://ofof.nl/";
 	const saved = new Set();
 	const q = yootils.queue(concurrent);
 
@@ -189,6 +191,15 @@ async function _export({
 					const base_href = base_match && get_href(base_match[1]);
 					const base = resolve(url.href, base_href);
 
+					const canonical_match = /<link rel="canonical" ([\s\S]+?)>/m.exec(cleaned);
+					const canonical_href = canonical_match && get_href(canonical_match[1]);
+					if (canonical_href){
+						sitemap.add(resolve(base.href, canonical_href).href);
+						tasks.push(handle(resolve(base.href, canonical_href.replace("https://ofof.nl",`http://localhost:${port}`))));
+					} else {
+						sitemap.add(sitemap_base+pathname)
+					}
+
 					let match;
 					let pattern = /<a ([\s\S]+?)>/gm;
 
@@ -240,6 +251,8 @@ async function _export({
 		proc.kill();
 		throw err;
 	}
+
+	console.log(Array.from(sitemap).join("\n"));
 }
 
 function get_href(attrs: string) {
